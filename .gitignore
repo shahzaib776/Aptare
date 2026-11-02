@@ -1,0 +1,43 @@
+# Planning & Prompting Artifacts (Keep local, don't commit)
+DESIGN.md
+IMPLEMENTATION.md
+HANDOFF.md
+*.pdf
+docs/
+
+# Python / Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+data/secret.key
+
+# Local Data & SQLite DB
+data/
+*.db
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.npm
+.eslintcache
+
+# LaTeX & Tectonic build outputs
+*.aux
+*.log
+*.out
+*.pdf
+*.toc
+
+# IDE / System
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
