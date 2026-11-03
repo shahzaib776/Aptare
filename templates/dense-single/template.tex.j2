@@ -1,0 +1,206 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT (see templates/LICENSES.md)
+% Converted to a Jinja template for Aptare.
+%------------------------
+%# Context: `resume` (an escaped TailoredResume) and `typography`. Hiding fields and ordering
+%# sections is the renderer's job (TP-3); this file only skips what is empty (TP-4).
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[letterpaper,margin=\VAR{typography.margin_in}in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+
+% Ensure the generated pdf is machine readable/ATS parsable (TP-8). These are pdfTeX
+% features; engines without them write their own text map.
+\ifdefined\pdfgentounicode
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\fi
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+%----------TYPOGRAPHY----------
+%% set base = typography.base_font_pt
+\renewcommand{\normalsize}{\fontsize{\VAR{base}}{\VAR{(base * 1.2) | round(2)}}\selectfont}
+\renewcommand{\small}{\fontsize{\VAR{(base * 0.91) | round(2)}}{\VAR{(base * 1.09) | round(2)}}\selectfont}
+\renewcommand{\large}{\fontsize{\VAR{(base * 1.09) | round(2)}}{\VAR{(base * 1.31) | round(2)}}\selectfont}
+\renewcommand{\Huge}{\fontsize{\VAR{(base * 2.26) | round(2)}}{\VAR{(base * 2.7) | round(2)}}\selectfont}
+\linespread{\VAR{typography.line_spread}}
+\setlist[itemize,2]{itemsep=\VAR{typography.item_sep_pt}pt}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\titlerule \vspace{-5pt}]
+\titlespacing*{\section}{0pt}{\VAR{typography.section_sep_pt}pt}{4pt}
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+\begin{document}
+
+%----------HEADING----------
+%% set contact = []
+%% if resume.header.phone
+%%   set _ = contact.append({'text': resume.header.phone, 'href': None})
+%% endif
+%% if resume.header.email
+%%   set _ = contact.append({'text': resume.header.email, 'href': 'mailto:' ~ resume.header.email})
+%% endif
+%% if resume.header.location
+%%   set _ = contact.append({'text': resume.header.location, 'href': None})
+%% endif
+%% for link in resume.header.links
+%%   set _ = contact.append({'text': link.label, 'href': link.url})
+%% endfor
+\begin{center}
+    \textbf{\Huge \scshape \VAR{resume.header.full_name}} \\ \vspace{1pt}
+%% if resume.header.headline
+    \small \VAR{resume.header.headline} \\ \vspace{1pt}
+%% endif
+%% if contact
+    \small
+%%   for item in contact
+%%     if item.href
+    \href{\VAR{item.href}}{\underline{\VAR{item.text}}}%
+%%     else
+    \VAR{item.text}%
+%%     endif
+%%     if not loop.last
+ $|$
+%%     endif
+%%   endfor
+%% endif
+\end{center}
+
+%% if resume.summary
+\section{Summary}
+  \small{\VAR{resume.summary}}
+%% endif
+
+%% for section in resume.sections
+%%   if section.items and section.key == 'education'
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+%%     for item in section.items
+    \resumeSubheading
+      {\VAR{item.institution}}{\VAR{item.location or ''}}
+      {\VAR{item.degree ~ (', ' ~ item.field if item.field else '')}}{\VAR{item.dates or ''}}
+%%       if item.details
+      \resumeItemListStart
+%%         for detail in item.details
+        \resumeItem{\VAR{detail}}
+%%         endfor
+      \resumeItemListEnd
+%%       endif
+%%     endfor
+  \resumeSubHeadingListEnd
+
+%%   elif section.items and section.key == 'experience'
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+%%     for item in section.items
+    \resumeSubheading
+      {\VAR{item.title}}{\VAR{item.dates}}
+      {\VAR{item.company}}{\VAR{item.location or ''}}
+%%       if item.bullets
+      \resumeItemListStart
+%%         for bullet in item.bullets
+        \resumeItem{\VAR{bullet.text}}
+%%         endfor
+      \resumeItemListEnd
+%%       endif
+%%     endfor
+  \resumeSubHeadingListEnd
+
+%%   elif section.items and section.key == 'projects'
+%-----------PROJECTS-----------
+\section{Projects}
+  \resumeSubHeadingListStart
+%%     for item in section.items
+    \resumeProjectHeading
+      {\textbf{\VAR{item.name}}%
+%%       if item.url
+ $|$ \href{\VAR{item.url}}{\underline{\VAR{item.url}}}%
+%%       endif
+}{\VAR{item.date or ''}}
+%%       if item.bullets
+      \resumeItemListStart
+%%         for bullet in item.bullets
+        \resumeItem{\VAR{bullet.text}}
+%%         endfor
+      \resumeItemListEnd
+%%       endif
+%%     endfor
+  \resumeSubHeadingListEnd
+
+%%   elif section.items and section.key == 'skills'
+%%     set groups = section.items | map(attribute='categories') | sum(start=[]) | selectattr('skills') | list
+%%     if groups
+%-----------PROGRAMMING SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+%%       for group in groups
+     \textbf{\VAR{group.name}}{: \VAR{group.skills | map(attribute='name') | join(', ')}}%
+%%         if not loop.last
+ \\
+%%         endif
+%%       endfor
+    }}
+ \end{itemize}
+
+%%     endif
+%%   endif
+%% endfor
+
+%-------------------------------------------
+\end{document}
