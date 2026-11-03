@@ -1,4 +1,5 @@
-import { ApiError, apiGet } from "./client";
+import { fixtureResume } from "../features/dev/fixtureResume";
+import { ApiError, apiGet, apiPost } from "./client";
 
 const fetchMock = vi.fn();
 
@@ -21,7 +22,7 @@ test("returns the parsed body of a successful request", async () => {
   const health = await apiGet("/api/v1/health");
 
   expect(health).toEqual({ status: "ok", compiler: "ok" });
-  expect(fetchMock).toHaveBeenCalledWith("/api/v1/health");
+  expect(fetchMock).toHaveBeenCalledWith("/api/v1/health", undefined);
 });
 
 test("turns the backend error envelope into an ApiError", async () => {
@@ -72,4 +73,41 @@ test("a request that never reaches the server is a network_error", async () => {
 
   expect(error).toBeInstanceOf(ApiError);
   expect(error).toMatchObject({ status: 0, code: "network_error" });
+});
+
+const renderBody = { resume: fixtureResume, template_id: "dense-single" };
+
+test("apiPost sends the body as JSON and returns the parsed reply", async () => {
+  const rendered = {
+    pdf_hash: "p",
+    tex_hash: "t",
+    page_count: 1,
+    last_page_fill: 0.5,
+    text_map: {},
+  };
+  fetchMock.mockResolvedValue(reply(200, JSON.stringify(rendered)));
+
+  const result = await apiPost("/api/v1/dev/render", renderBody);
+
+  expect(result).toEqual(rendered);
+  expect(fetchMock).toHaveBeenCalledWith("/api/v1/dev/render", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(renderBody),
+  });
+});
+
+test("apiPost turns an error envelope into an ApiError", async () => {
+  const envelope = {
+    error: {
+      code: "compile_failed",
+      message: "The resume did not compile.",
+      details: { log_tail: "x" },
+    },
+  };
+  fetchMock.mockResolvedValue(reply(422, JSON.stringify(envelope)));
+
+  const error = await apiPost("/api/v1/dev/render", renderBody).catch((e: unknown) => e);
+
+  expect(error).toMatchObject({ status: 422, code: "compile_failed", details: { log_tail: "x" } });
 });

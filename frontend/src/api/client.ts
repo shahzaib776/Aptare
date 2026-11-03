@@ -34,10 +34,37 @@ export async function apiGet<P extends GetPath>(path: P): Promise<GetResponse<P>
   return (await request(path)) as GetResponse<P>;
 }
 
-async function request(path: string): Promise<unknown> {
+type PostPath = {
+  [P in keyof paths]: paths[P] extends { post: object } ? P : never;
+}[keyof paths];
+
+type PostBody<P extends PostPath> = paths[P] extends {
+  post: { requestBody: { content: { "application/json": infer Body } } };
+}
+  ? Body
+  : never;
+
+type PostResponse<P extends PostPath> = paths[P] extends { post: infer Operation }
+  ? JsonBody<Operation>
+  : never;
+
+/** POST a JSON body to one of the API's routes; both body and reply are typed from the schema. */
+export async function apiPost<P extends PostPath>(
+  path: P,
+  body: PostBody<P>,
+): Promise<PostResponse<P>> {
+  const init = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+  return (await request(path, init)) as PostResponse<P>;
+}
+
+async function request(path: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(path);
+    response = await fetch(path, init);
   } catch {
     throw new ApiError(0, "network_error", "Cannot reach the server.");
   }
