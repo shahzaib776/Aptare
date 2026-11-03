@@ -13,7 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project: [backend, compiler]
+        # The same marker expressions `make test` uses: only the backend defines `live`.
+        include:
+          - project: backend
+            marks: not compile and not live
+          - project: compiler
+            marks: not compile
     defaults:
       run:
         working-directory: ${{ matrix.project }}
@@ -24,7 +29,7 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run mypy
-      - run: uv run pytest -m "not compile and not live"
+      - run: uv run pytest -m "${{ matrix.marks }}"
 
   compile:
     runs-on: ubuntu-latest
