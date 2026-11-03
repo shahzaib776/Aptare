@@ -175,3 +175,24 @@ test("stops saying it is loading once the pages are there", async () => {
 
   expect(screen.queryByText("Loading preview…")).toBeNull();
 });
+
+test("reports the hash only once its PDF is the one on screen", async () => {
+  const first = fakeDocument(1);
+  let finish: (document: PdfDocument) => void = () => {};
+  loadPdfMock
+    .mockResolvedValueOnce(first)
+    .mockReturnValueOnce(new Promise<PdfDocument>((resolve) => (finish = resolve)));
+  const onDisplayed = vi.fn();
+
+  const { rerender } = render(preview({ onDisplayed }));
+  expect(onDisplayed).not.toHaveBeenCalled();
+  await flush();
+  expect(onDisplayed.mock.calls).toEqual([["hash-one"]]);
+
+  rerender(preview({ onDisplayed, pdfHash: "hash-two" }));
+  await flush();
+  expect(onDisplayed.mock.calls).toEqual([["hash-one"]]);
+
+  await act(async () => finish(fakeDocument(1)));
+  expect(onDisplayed.mock.calls).toEqual([["hash-one"], ["hash-two"]]);
+});

@@ -144,3 +144,17 @@ def test_each_error_says_what_actually_happened(status: int, worker_code: str, w
         compile_with(client)
 
     assert words in raised.value.message
+
+
+def test_an_unreachable_worker_is_logged_with_its_address_and_the_reason(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("[Errno 8] nodename nor servname provided")
+
+    with caplog.at_level(logging.WARNING), pytest.raises(AppError):
+        compile_with(client_for(handler))
+
+    assert "http://compiler:8001" in caplog.text
+    assert "ConnectError" in caplog.text
+    assert SECRET not in caplog.text

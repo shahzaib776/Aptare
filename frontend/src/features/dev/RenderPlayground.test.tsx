@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 
 import type { RenderResponse } from "../../api/types";
 import { loadPdf, type PdfDocument } from "../../components/pdf/pdfjs";
@@ -59,6 +59,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 test("renders the fixture resume on load and shows the PDF that comes back", async () => {
@@ -158,4 +159,105 @@ test("moves focus to the editor when a line is selected", async () => {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`Edit ${FIRST_BULLET}`) }));
 
   expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Selected text" }));
+});
+
+function recordDownloads(): string[] {
+  const saved: string[] = [];
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    saved.push(this.getAttribute("href") ?? "");
+  });
+  return saved;
+}
+
+function downloadButton() {
+  return screen.getByRole<HTMLButtonElement>("button", { name: "Download PDF" });
+}
+
+function selectFirstBullet() {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`Edit ${FIRST_BULLET}`) }));
+}
+
+function type(text: string) {
+  fireEvent.change(screen.getByRole("textbox", { name: "Selected text" }), {
+    target: { value: text },
+  });
+}
+
+describe("download", () => {
+  test("offers the PDF that is on screen", async () => {
+    const saved = recordDownloads();
+    stubRenderApi(json(200, rendered("hash-1")));
+    renderWithQuery(<RenderPlayground />);
+    await settle();
+
+    fireEvent.click(downloadButton());
+
+    expect(saved).toEqual(["/api/v1/files/pdf/hash-1"]);
+  });
+
+  test("is disabled as soon as you type and downloads the new PDF once it is shown", async () => {
+    const saved = recordDownloads();
+    stubRenderApi(json(200, rendered("hash-1")), json(200, rendered("hash-2")));
+    renderWithQuery(<RenderPlayground />);
+    await settle();
+    selectFirstBullet();
+
+    type("Shipped it");
+
+    expect(downloadButton().disabled).toBe(true);
+    expect(screen.getByText("Waiting for the preview to catch up")).toBeTruthy();
+
+    await settle(500);
+    expect(downloadButton().disabled).toBe(false);
+    fireEvent.click(downloadButton());
+
+    expect(saved).toEqual(["/api/v1/files/pdf/hash-2"]);
+  });
+
+  test("stays disabled while the new PDF is still loading, then offers it", async () => {
+    const saved = recordDownloads();
+    let finish: (document: PdfDocument) => void = () => {};
+    loadPdfMock
+      .mockImplementationOnce(() => Promise.resolve(pdfDocument()))
+      .mockImplementationOnce(() => new Promise<PdfDocument>((resolve) => (finish = resolve)));
+    stubRenderApi(json(200, rendered("hash-1")), json(200, rendered("hash-2")));
+    renderWithQuery(<RenderPlayground />);
+    await settle();
+    selectFirstBullet();
+
+    type("Shipped it");
+    await settle(500);
+
+    expect(downloadButton().disabled).toBe(true);
+    fireEvent.click(downloadButton());
+    expect(saved).toEqual([]);
+
+    await act(async () => finish(pdfDocument()));
+    await settle();
+
+    expect(downloadButton().disabled).toBe(false);
+    fireEvent.click(downloadButton());
+    expect(saved).toEqual(["/api/v1/files/pdf/hash-2"]);
+  });
+
+  test("is disabled after a failed compile, and says why", async () => {
+    const saved = recordDownloads();
+    const failure = {
+      error: { code: "compile_failed", message: "The resume did not compile.", details: null },
+    };
+    stubRenderApi(json(200, rendered("hash-1")), json(422, failure));
+    renderWithQuery(<RenderPlayground />);
+    await settle();
+    selectFirstBullet();
+
+    type("Oops");
+    await settle(500);
+    fireEvent.click(downloadButton());
+
+    expect(downloadButton().disabled).toBe(true);
+    expect(screen.getByText("The latest edit did not compile")).toBeTruthy();
+    expect(saved).toEqual([]);
+  });
 });

@@ -13,12 +13,15 @@ interface Props {
   selectedId?: string | undefined;
   onSelect: (id: string) => void;
   describe: (id: string) => string;
+  /** Called with the hash of the PDF now on screen: later than `pdfHash` while it loads. */
+  onDisplayed?: (pdfHash: string) => void;
 }
 
 // A letter page is 612 points wide, so this draws it about 800 CSS pixels wide.
 const DEFAULT_SCALE = 1.3;
 
 interface Shown {
+  hash: string;
   document: PdfDocument;
   textMap: TextMap;
 }
@@ -31,6 +34,7 @@ export function PdfPreview({
   selectedId,
   onSelect,
   describe,
+  onDisplayed,
 }: Props) {
   // The pages and their boxes are swapped together once the new PDF has loaded, so boxes never
   // sit over a PDF they were not made for.
@@ -43,7 +47,7 @@ export function PdfPreview({
       (document) => {
         if (cancelled) return document.destroy();
         setFailed(false);
-        setShown({ document, textMap });
+        setShown({ hash: pdfHash, document, textMap });
       },
       () => {
         if (!cancelled) setFailed(true);
@@ -55,6 +59,10 @@ export function PdfPreview({
   }, [pdfHash, textMap]);
 
   useEffect(() => () => shown?.document.destroy(), [shown?.document]);
+
+  useEffect(() => {
+    if (shown) onDisplayed?.(shown.hash);
+  }, [shown]);
 
   return (
     <div aria-busy={compiling} className="relative">

@@ -1,5 +1,6 @@
 import base64
 import binascii
+import logging
 from typing import Any, Protocol
 
 import httpx
@@ -8,6 +9,8 @@ from pydantic import ValidationError
 from app.errors import AppError
 from app.schemas.base import StrictModel
 from app.schemas.compile import Element, LineBox, Placement, WorkerResult
+
+logger = logging.getLogger(__name__)
 
 # The worker itself gives up after 10 s (rule 12); the rest is Tectonic start-up and transfer.
 _TIMEOUT_SECONDS = 20.0
@@ -55,7 +58,12 @@ class CompilerClient:
         try:
             with httpx.Client(transport=self._transport, timeout=_TIMEOUT_SECONDS) as http:
                 response = http.post(f"{self._base_url}/compile", json=payload)
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
+            # The address and error type say what is misconfigured; httpx errors never carry the
+            # request body, so no resume text can reach the log (rule 13).
+            logger.warning(
+                "Cannot reach the compiler at %s (%s)", self._base_url, type(error).__name__
+            )
             raise AppError("compiler_unavailable", "The compiler cannot be reached.", 503) from None
         if response.is_success:
             return _parse(response)

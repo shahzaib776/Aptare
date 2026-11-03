@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useRender } from "../../api/render";
 import type { TailoredResume } from "../../api/types";
+import { DownloadButton } from "../../components/pdf/DownloadButton";
 import { PdfPreview } from "../../components/pdf/PdfPreview";
 import { fixtureResume } from "./fixtureResume";
 import { textOf, withText } from "./resumeText";
@@ -17,7 +18,18 @@ function describe(resume: TailoredResume, id: string): string {
 export function RenderPlayground() {
   const [resume, setResume] = useState(fixtureResume);
   const [selectedId, setSelectedId] = useState<string>();
-  const { render, isCompiling, error } = useRender(resume);
+  const { render, isCompiling, isPending, error } = useRender(resume);
+  // The preview keeps the old PDF on screen until the new one has loaded; Download must offer
+  // the one on screen (EX-2), so it uses the hash the preview reports, not the newest render.
+  const [displayedHash, setDisplayedHash] = useState<string>();
+
+  // EX-3: no download while what is on screen is about to change, or no longer matches the text.
+  const note =
+    isPending || (render && render.pdf_hash !== displayedHash)
+      ? "Waiting for the preview to catch up"
+      : error
+        ? "The latest edit did not compile"
+        : undefined;
 
   return (
     <section>
@@ -31,15 +43,20 @@ export function RenderPlayground() {
         <div className="min-w-0 overflow-x-auto">
           {render ? (
             <>
-              <p className="mb-2 text-xs text-slate-600">
-                Showing PDF {render.pdf_hash.slice(0, 12)}…
-              </p>
+              <div className="mb-2 flex flex-wrap items-center gap-3">
+                <DownloadButton pdfHash={displayedHash} pending={note !== undefined} />
+                <p className="text-xs text-slate-600">
+                  Showing PDF {(displayedHash ?? render.pdf_hash).slice(0, 12)}…
+                </p>
+                {note && <p className="text-xs text-slate-600">{note}</p>}
+              </div>
               <PdfPreview
                 pdfHash={render.pdf_hash}
                 textMap={render.text_map}
                 compiling={isCompiling}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
+                onDisplayed={setDisplayedHash}
                 describe={(id) => describe(resume, id)}
               />
             </>
