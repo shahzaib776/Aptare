@@ -8,9 +8,11 @@ on:
   # The "Run workflow" button on the Actions page.
   workflow_dispatch:
 
+# Runners are pinned (not `ubuntu-latest`) so the OS, and the Python it ships, change only when we
+# choose; each project's .python-version pins Python 3.12 the same way.
 jobs:
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         # The same marker expressions `make test` uses: only the backend defines `live`.
@@ -23,8 +25,8 @@ jobs:
       run:
         working-directory: ${{ matrix.project }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync
       - run: uv run ruff check
       - run: uv run ruff format --check
@@ -32,16 +34,16 @@ jobs:
       - run: uv run pytest -m "${{ matrix.marks }}"
 
   compile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -f compiler/Dockerfile --target test -t aptare-compiler-test .
       - run: docker run --rm --network none aptare-compiler-test
 
   compose:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: mkdir -p data
       - run: APTARE_UID=$(id -u) APTARE_GID=$(id -g) docker compose up -d --build --wait
       - run: python3 scripts/smoke.py
@@ -51,13 +53,13 @@ jobs:
         run: docker compose down
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
