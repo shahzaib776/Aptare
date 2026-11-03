@@ -21,6 +21,13 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest -m "not compile and not live"
 
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f compiler/Dockerfile --target test -t aptare-compiler-test .
+      - run: docker run --rm --network none aptare-compiler-test
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

@@ -1,0 +1,9 @@
+# Allow-list: the build context is the repo root (see compiler/Dockerfile), keep it small.
+*
+!compiler/pyproject.toml
+!compiler/uv.lock
+!compiler/warmup.tex
+!compiler/worker
+!compiler/tests
+!backend/tests/golden
+**/__pycache__
