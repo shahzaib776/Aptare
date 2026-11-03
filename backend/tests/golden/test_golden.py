@@ -6,7 +6,7 @@ import pytest
 from app.schemas.resume import TailoredResume
 from app.services.render.renderer import render
 from app.services.render.templates import load_manifests
-from tests.resumes import full_resume, minimal_resume, no_linkedin_resume
+from tests.resumes import full_resume, minimal_resume, no_linkedin_resume, tricky_resume
 
 TEMPLATES = Path(__file__).resolve().parents[3] / "templates"
 GOLDEN = Path(__file__).resolve().parent / "dense-single"
@@ -15,6 +15,7 @@ RESUMES: dict[str, Callable[[], TailoredResume]] = {
     "full": full_resume,
     "minimal": minimal_resume,
     "no-linkedin": no_linkedin_resume,
+    "tricky": tricky_resume,
 }
 
 

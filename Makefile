@@ -13,10 +13,12 @@ test:
 	cd compiler && uv run pytest -m "not compile"
 	cd frontend && npm test
 
-# pytest exits 5 when nothing is collected, which is expected until the compile tests land (step 8)
+# The backend has no compile tests yet and pytest exits 5 when nothing is collected. The compiler
+# ones run in the image with no network, which proves the offline package cache is complete.
 test-compile:
 	cd backend && uv run pytest -m compile; code=$$?; [ $$code -eq 5 ] || exit $$code
-	cd compiler && uv run pytest -m compile; code=$$?; [ $$code -eq 5 ] || exit $$code
+	docker build -f compiler/Dockerfile --target test -t aptare-compiler-test .
+	docker run --rm --network none aptare-compiler-test
 
 lint:
 	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy

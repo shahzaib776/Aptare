@@ -50,7 +50,7 @@
 \titleformat{\section}{
   \vspace{-4pt}\scshape\raggedright\large
 }{}{0em}{}[\titlerule \vspace{-5pt}]
-\titlespacing*{\section}{0pt}{\VAR{typography.section_sep_pt}pt}{4pt}
+\titlespacing*{\section}{0pt}{\VAR{typography.section_sep_pt}pt}{8pt}
 
 %-------------------------
 % Custom commands
@@ -108,12 +108,12 @@
     \small
 %%   for item in contact
 %%     if item.href
-    \href{\VAR{item.href}}{\underline{\VAR{item.text}}}%
+    \href{\VAR{item.href | href}}{\underline{\VAR{item.text}}}%
 %%     else
     \VAR{item.text}%
 %%     endif
 %%     if not loop.last
- $|$
+\ $|$\ %
 %%     endif
 %%   endfor
 %% endif
@@ -169,7 +169,7 @@
     \resumeProjectHeading
       {\textbf{\VAR{item.name}}%
 %%       if item.url
- $|$ \href{\VAR{item.url}}{\underline{\VAR{item.url}}}%
+\ $|$\ \href{\VAR{item.url | href}}{\underline{\VAR{item.url}}}%
 %%       endif
 }{\VAR{item.date or ''}}
 %%       if item.bullets

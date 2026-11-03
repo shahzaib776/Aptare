@@ -19,3 +19,11 @@ def test_a_template_cannot_reach_python_internals(tmp_path: Path) -> None:
 
     with pytest.raises(SecurityError):
         env.from_string(r"\VAR{ ''.__class__.__mro__ }").render()
+
+
+def test_href_filter_is_available(tmp_path: Path) -> None:
+    env = make_environment(tmp_path)
+
+    out = env.from_string(r"\VAR{ u | href }").render(u=r"a\textasciitilde{}b")
+
+    assert out == "a~b"

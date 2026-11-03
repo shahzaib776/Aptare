@@ -8,7 +8,7 @@ from app.schemas.resume import (
     SkillsSection,
     TailoredResume,
 )
-from app.services.render.escape import escape_resume, escape_text
+from app.services.render.escape import escape_resume, escape_text, href_target
 
 
 @pytest.mark.parametrize(
@@ -154,3 +154,27 @@ def test_escape_resume_does_not_change_the_resume_it_was_given() -> None:
     escape_resume(resume)
 
     assert resume.header.full_name == "Ada & Co"
+
+
+@pytest.mark.parametrize("raw", ["a\n\nb", "a\n \n\nb", "a \r\n\r\n b", "a\n\n\n\nb"])
+def test_blank_lines_become_one_space(raw: str) -> None:
+    """A blank line is a paragraph break in TeX, which breaks inside macro arguments."""
+    assert escape_text(raw) == "a b"
+
+
+def test_a_single_newline_is_left_alone() -> None:
+    assert escape_text("a\nb") == "a\nb"
+
+
+@pytest.mark.parametrize(
+    ("url", "target"),
+    [
+        ("https://site.com/~ada_x?a=1&b=2", r"https://site.com/~ada\_x?a=1\&b=2"),
+        ("https://site.com/a%20b#top", r"https://site.com/a\%20b\#top"),
+        ("https://site.com/a^b$c", "https://site.com/a^b$c"),
+        ("https://site.com/{x}\\y", r"https://site.com/\%7Bx\%7D\%5Cy"),
+    ],
+)
+def test_href_target_undoes_the_escapes_href_mishandles(url: str, target: str) -> None:
+    """Found by compiling (step 8): inside \\href, \\textasciitilde{} left a stray {} in the URL."""
+    assert href_target(escape_text(url)) == target

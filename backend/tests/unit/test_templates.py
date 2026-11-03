@@ -180,4 +180,12 @@ def test_an_education_entry_with_only_the_required_fields_has_no_stray_parts(
 def test_a_project_with_a_url_links_to_it_after_a_separator(template_id: str) -> None:
     tex = render(template_id, full_resume())
 
-    assert r"$|$ \href{https://example.com/de}" in tex
+    assert r"\ $|$\ \href{https://example.com/de}" in tex
+
+
+@pytest.mark.parametrize("template_id", TEMPLATE_IDS)
+def test_separators_never_rely_on_a_space_at_the_start_of_a_line(template_id: str) -> None:
+    """Found by compiling (step 8): TeX drops spaces at the start of a line."""
+    tex = render(template_id, full_resume())
+
+    assert not re.search(r"^ *\$\|\$", tex, re.MULTILINE)

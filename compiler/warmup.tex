@@ -1,0 +1,38 @@
+% Compiled once while building the image so Tectonic's package cache holds everything the
+% templates use. Compiles run with --only-cached and no network, so a package missing here fails
+% at compile time, which the compile tests catch. Add every new template's packages here.
+\documentclass[letterpaper,11pt]{article}
+\usepackage{latexsym}
+\usepackage[letterpaper,margin=0.5in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\ifdefined\pdfgentounicode
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\fi
+\pagestyle{fancy}
+\makeatletter
+\newcommand{\warmstyles}{%
+  Aa \textbf{Aa} \textit{Aa} \textbf{\textit{Aa}} {\scshape Aa} {\scshape\bfseries Aa}
+  \underline{Aa} $|$ $\vcenter{\hbox{\tiny$\bullet$}}$ \par}
+\makeatother
+\begin{document}
+% Latin Modern has a separate font file per optical size (about 5 to 17 pt) and Tectonic caches
+% a file only when something uses it, so sweep every size users can reach via the typography
+% settings, in every style the templates use.
+\makeatletter
+\@for\warmsize:=5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,26,28,30\do{%
+  \fontsize{\warmsize}{\warmsize}\selectfont \warmstyles}
+\makeatother
+\normalsize
+\section{Warm-up}
+\href{https://example.com}{a link}
+\begin{itemize}[leftmargin=0.15in, label={}]
+  \item one
+  \item two
+\end{itemize}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r} left & right \\ \end{tabular*}
+\end{document}

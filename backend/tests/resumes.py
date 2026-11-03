@@ -110,6 +110,27 @@ def no_linkedin_resume() -> TailoredResume:
     return TailoredResume.model_validate(data)
 
 
+SPECIAL_URL = "https://site.com/~ada_x?a=1%202#top"
+WRAPPING_BULLET = (
+    "Designed a multi-threaded, fault-tolerant ingestion pipeline processing millions of records "
+    "per day across several regions, cutting end-to-end latency for downstream analytics consumers"
+)
+
+
+def tricky_resume() -> TailoredResume:
+    """Characters and shapes that can break LaTeX: found by compiling, see step 8."""
+    data = full_resume_data()
+    data["header"]["links"] = [{"kind": "github", "label": "ada_x\n\nrepo", "url": SPECIAL_URL}]
+    experience = data["sections"][1]["items"][0]
+    experience["title"] = "Engineer\n\nLead"
+    experience["bullets"] = [
+        bullet(10, "Cut R&D costs 30% using C# & $5k_budget ~ 2^3 {braces}"),
+        bullet(12, WRAPPING_BULLET),
+    ]
+    data["sections"][2]["items"][0]["url"] = SPECIAL_URL
+    return TailoredResume.model_validate(data)
+
+
 def minimal_resume() -> TailoredResume:
     return TailoredResume.model_validate(
         {"header": {"full_name": "Ada", "email": "ada@example.com"}, "sections": []}

@@ -3,11 +3,13 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
+from app.services.render.escape import href_target
+
 
 def make_environment(templates_dir: Path) -> Environment:
     """A Jinja environment whose delimiters cannot clash with LaTeX."""
     # Sandboxed because TP-9 will load user-written templates inside the API process.
-    return SandboxedEnvironment(
+    env = SandboxedEnvironment(
         loader=FileSystemLoader(templates_dir),
         block_start_string=r"\BLOCK{",
         block_end_string="}",
@@ -24,3 +26,5 @@ def make_environment(templates_dir: Path) -> Environment:
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters["href"] = href_target
+    return env
