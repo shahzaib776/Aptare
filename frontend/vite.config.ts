@@ -1,6 +1,13 @@
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  server: {
+    // The browser only ever talks to its own origin, so the API needs no CORS setup.
+    proxy: { "/api": "http://localhost:8000" },
+  },
   test: {
     environment: "jsdom",
     globals: true,

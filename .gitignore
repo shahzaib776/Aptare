@@ -41,3 +41,6 @@ build/
 .idea/
 .vscode/
 *.swp
+
+# Intermediate output of `make typegen`
+frontend/openapi.json

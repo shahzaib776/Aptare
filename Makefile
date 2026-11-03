@@ -30,8 +30,11 @@ fmt:
 	cd compiler && uv run ruff check --fix && uv run ruff format
 	cd frontend && npm run format
 
+# The generated file is committed, so lint and typecheck never need Python. Settings use an
+# in-memory database so dumping the schema creates no data/ folder.
 typegen:
-	@echo "typegen needs the FastAPI app (step 2) and openapi-typescript (step 11)" >&2; exit 1
+	cd backend && uv run python -c "import json; from app.config import Settings; from app.main import create_app; print(json.dumps(create_app(Settings(db_url='sqlite://')).openapi(), indent=2))" > ../frontend/openapi.json
+	cd frontend && npm run typegen
 
 e2e:
 	@echo "e2e needs docker-compose (step 14) and Playwright (Phase 2)" >&2; exit 1
