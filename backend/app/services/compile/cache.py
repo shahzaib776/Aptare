@@ -1,8 +1,11 @@
 import hashlib
+import io
 import json
 import os
 import re
 import tempfile
+import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy import select
@@ -32,6 +35,13 @@ def _write_atomically(path: Path, data: bytes) -> None:
         raise
 
 
+@dataclass(frozen=True)
+class TexDownload:
+    filename: str
+    media_type: str
+    data: bytes
+
+
 class ArtifactStore:
     """PDFs and tex bundles on disk, addressed by hash (rule 7)."""
 
@@ -49,6 +59,20 @@ class ArtifactStore:
             return None
         path = self.root / "pdf" / f"{pdf_hash}.pdf"
         return path if path.is_file() else None
+
+    def tex_download(self, tex_hash: str) -> TexDownload | None:
+        """The `.tex` alone, or a zip with its assets; None if the hash is malformed or unknown."""
+        folder = self.root / "tex" / tex_hash
+        if not _HASH.fullmatch(tex_hash) or not (folder / "main.tex").is_file():
+            return None
+        files = sorted(path for path in folder.rglob("*") if path.is_file())
+        if len(files) == 1:
+            return TexDownload("resume.tex", "text/plain; charset=utf-8", files[0].read_bytes())
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in files:
+                archive.write(path, path.relative_to(folder).as_posix())
+        return TexDownload("resume.zip", "application/zip", buffer.getvalue())
 
     def save_tex(self, tex_hash: str, tex: str, assets: dict[str, bytes]) -> Path:
         # Asset names come from our own template folders; user-uploaded templates (TP-9) must

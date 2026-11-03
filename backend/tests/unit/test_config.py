@@ -7,7 +7,7 @@ from app.config import Settings
 
 
 def test_defaults_work_without_any_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("ENV", "DATA_DIR", "DB_URL", "COMPILER_URL", "LLM_PROVIDER"):
+    for name in ("ENV", "DATA_DIR", "DB_URL", "COMPILER_URL", "LLM_PROVIDER", "TEMPLATES_DIR"):
         monkeypatch.delenv(name, raising=False)
 
     s = Settings()
@@ -16,15 +16,18 @@ def test_defaults_work_without_any_environment(monkeypatch: pytest.MonkeyPatch) 
     assert s.data_dir == Path("./data")
     assert s.db_url.startswith("sqlite:///")
     assert s.llm_provider == "none"
+    assert s.templates_dir == Path("../templates")
 
 
 def test_environment_variables_override_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COMPILER_URL", "http://compiler:9000")
     monkeypatch.setenv("ENV", "production")
+    monkeypatch.setenv("TEMPLATES_DIR", "/templates")
 
     s = Settings()
 
     assert s.compiler_url == "http://compiler:9000"
+    assert s.templates_dir == Path("/templates")
     assert s.env == "production"
 
 

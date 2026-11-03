@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     env: Literal["development", "test", "production"] = "development"
     data_dir: Path = Path("./data")
+    # The API runs from backend/; compose points this at the mounted templates folder.
+    templates_dir: Path = Path("../templates")
     db_url: str = "sqlite:///./data/app.db"
     compiler_url: str = "http://compiler:8001"
     llm_provider: str = "none"

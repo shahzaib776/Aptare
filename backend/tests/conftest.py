@@ -18,6 +18,7 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path,
         db_url="sqlite://",
         compiler_url="http://127.0.0.1:1",
+        templates_dir=Path(__file__).resolve().parents[2] / "templates",
     )
 
 

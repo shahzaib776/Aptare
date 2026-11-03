@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from app.errors import AppError
 from app.schemas.template import TemplateManifest
 
 
@@ -17,6 +18,12 @@ def load_manifests(templates_dir: Path) -> dict[str, TemplateManifest]:
             manifest = _load_one(folder)
             manifests[manifest.id] = manifest
     return manifests
+
+
+def find_template(manifests: dict[str, TemplateManifest], template_id: str) -> TemplateManifest:
+    if template_id not in manifests:
+        raise AppError("template_not_found", "No such template.", 404)
+    return manifests[template_id]
 
 
 def _load_one(folder: Path) -> TemplateManifest:
