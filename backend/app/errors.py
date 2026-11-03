@@ -1,10 +1,12 @@
 import logging
+import traceback
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,43 @@ def _envelope(
     return JSONResponse(status_code=status_code, content=body)
 
 
+class CatchAllErrorsMiddleware:
+    """Answers crashes itself: Starlette re-raises after its handler and uvicorn logs the text."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        response_started = False
+
+        async def tracking_send(message: Message) -> None:
+            nonlocal response_started
+            response_started = response_started or message["type"] == "http.response.start"
+            await send(message)
+
+        try:
+            await self.app(scope, receive, tracking_send)
+        except Exception as exc:
+            _log_crash(scope, exc)
+            if not response_started:
+                await _envelope(500, "internal_error", "Something went wrong.")(
+                    scope, receive, send
+                )
+
+
+def _log_crash(scope: Scope, exc: Exception) -> None:
+    # Rule 13: an exception message can hold resume or posting text (pydantic echoes the input).
+    frames = traceback.extract_tb(exc.__traceback__)
+    where = f"{frames[-1].filename}:{frames[-1].lineno}" if frames else "unknown"
+    logger.error(
+        "Unhandled %s on %s %s at %s", type(exc).__name__, scope["method"], scope["path"], where
+    )
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
@@ -54,7 +93,4 @@ def register_error_handlers(app: FastAPI) -> None:
         errors = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
         return _envelope(422, "validation_error", "Invalid request.", {"errors": errors})
 
-    @app.exception_handler(Exception)
-    async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
-        return _envelope(500, "internal_error", "Something went wrong.")
+    app.add_middleware(CatchAllErrorsMiddleware)

@@ -33,3 +33,28 @@ def test_unknown_env_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_reads_the_repo_root_env_file_when_started_from_backend(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    backend = tmp_path / "repo" / "backend"
+    backend.mkdir(parents=True)
+    (tmp_path / "repo" / ".env").write_text("COMPILER_URL=http://from-root:1\n")
+    monkeypatch.delenv("COMPILER_URL", raising=False)
+    monkeypatch.chdir(backend)
+
+    assert Settings().compiler_url == "http://from-root:1"
+
+
+def test_a_backend_env_file_beats_the_repo_root_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    backend = tmp_path / "repo" / "backend"
+    backend.mkdir(parents=True)
+    (tmp_path / "repo" / ".env").write_text("COMPILER_URL=http://from-root:1\n")
+    (backend / ".env").write_text("COMPILER_URL=http://from-backend:2\n")
+    monkeypatch.delenv("COMPILER_URL", raising=False)
+    monkeypatch.chdir(backend)
+
+    assert Settings().compiler_url == "http://from-backend:2"

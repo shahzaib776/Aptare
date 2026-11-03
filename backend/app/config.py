@@ -6,7 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        # Later files win: backend/.env overrides the repo-root .env from the README.
+        env_file=("../.env", ".env"),
+        extra="ignore",
+    )
 
     env: Literal["development", "test", "production"] = "development"
     data_dir: Path = Path("./data")

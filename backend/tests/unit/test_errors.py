@@ -1,7 +1,15 @@
+import logging
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from app.errors import AppError, register_error_handlers
+
+
+class _Model(BaseModel):
+    n: int
 
 
 def make_client() -> TestClient:
@@ -24,7 +32,16 @@ def make_client() -> TestClient:
     def boom() -> None:
         raise RuntimeError("secret internal detail")
 
-    return TestClient(app, raise_server_exceptions=False)
+    @app.get("/leak")
+    def leak() -> None:
+        raise RuntimeError("secret resume text")
+
+    @app.get("/leak-model")
+    def leak_model() -> None:
+        _Model(n="secret resume text")  # type: ignore[arg-type]
+
+    # The default client re-raises what escapes the app, which is what uvicorn would log.
+    return TestClient(app)
 
 
 def test_app_error_uses_the_envelope_and_its_status() -> None:
@@ -69,3 +86,17 @@ def test_unhandled_exception_is_a_generic_500_that_leaks_nothing() -> None:
     assert r.status_code == 500
     assert r.json()["error"]["code"] == "internal_error"
     assert "secret internal detail" not in r.text
+
+
+@pytest.mark.parametrize(
+    ("path", "error_type"), [("/leak", "RuntimeError"), ("/leak-model", "ValidationError")]
+)
+def test_crash_logs_name_the_error_but_never_its_message(
+    caplog: pytest.LogCaptureFixture, path: str, error_type: str
+) -> None:
+    with caplog.at_level(logging.ERROR):
+        make_client().get(path)
+
+    assert "secret resume text" not in caplog.text
+    assert error_type in caplog.text
+    assert path in caplog.text

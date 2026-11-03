@@ -19,4 +19,4 @@ Docker, [uv](https://docs.astral.sh/uv/), Node 22, Python 3.12.
 | `make typegen` | Regenerate frontend API types from OpenAPI |
 | `make e2e` | Playwright against docker compose with `LLM_PROVIDER=fake` |
 
-Copy `.env.example` to `.env` before running.
+Copy `.env.example` to `.env` in the repo root before running. A `backend/.env`, if present, overrides it.

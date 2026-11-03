@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import uuid_utils
-from sqlalchemy import Engine, String, create_engine
+from sqlalchemy import Engine, String, create_engine, event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Dialect, make_url
 from sqlalchemy.orm import Session, sessionmaker
@@ -38,17 +38,29 @@ class UuidV7(TypeDecorator[uuid.UUID]):
         return value if isinstance(value, uuid.UUID) else uuid.UUID(value)
 
 
+def _enable_foreign_keys(dbapi_connection: Any, connection_record: Any) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 def make_engine(url: str) -> Engine:
     parsed = make_url(url)
     if parsed.get_backend_name() != "sqlite":
         return create_engine(url)
 
     # FastAPI runs sync routes in a thread pool, so SQLite connections must cross threads.
+    options: dict[str, Any] = {"connect_args": {"check_same_thread": False}}
     if parsed.database in (None, "", ":memory:"):
-        return create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    # A missing parent directory otherwise surfaces as an opaque "unable to open database file".
-    Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(url, connect_args={"check_same_thread": False})
+        options["poolclass"] = StaticPool
+    else:
+        # A missing parent directory otherwise surfaces as an opaque "unable to open database file".
+        Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
+
+    engine = create_engine(url, **options)
+    # SQLite ignores foreign keys unless asked per connection; Postgres always enforces them.
+    event.listen(engine, "connect", _enable_foreign_keys)
+    return engine
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:
