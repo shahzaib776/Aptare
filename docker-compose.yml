@@ -1,0 +1,68 @@
+name: aptare
+
+services:
+  compiler:
+    build:
+      context: .
+      dockerfile: compiler/Dockerfile
+      target: runtime
+    networks: [compile-net]
+    # Rule 12: no internet (compile-net has no route out), no port published, nothing writable
+    # but /tmp, no extra privileges, and hard limits on what a runaway compile can use.
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build: backend
+    # `make dev` sets these to your own user, so ./data is writable on Linux as well.
+    user: "${APTARE_UID:-10001}:${APTARE_GID:-10001}"
+    environment:
+      # Phase 1's only page is the dev playground, which production mode removes.
+      ENV: ${ENV:-development}
+      DATA_DIR: /data
+      DB_URL: sqlite:////data/app.db
+      COMPILER_URL: http://compiler:8001
+      TEMPLATES_DIR: /templates
+    volumes:
+      - ./data:/data
+      - ./templates:/templates:ro
+    networks: [default, compile-net]
+    depends_on:
+      compiler:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  frontend:
+    build: frontend
+    # This machine only: Phase 1 has no login, so the app must not be offered to the network.
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+
+networks:
+  # No route to the outside world: only services attached here can talk to each other.
+  compile-net:
+    internal: true

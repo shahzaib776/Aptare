@@ -1,12 +1,21 @@
-.PHONY: install dev test test-compile lint fmt typegen e2e
+.PHONY: install dev down smoke test test-compile lint fmt typegen e2e
 
 install:
 	cd backend && uv sync
 	cd compiler && uv sync
 	cd frontend && npm ci
 
+# Your own user id lets the API container write ./data on Linux hosts too (macOS does not care).
 dev:
-	docker compose up
+	mkdir -p data
+	APTARE_UID=$$(id -u) APTARE_GID=$$(id -g) docker compose up --build
+
+down:
+	docker compose down
+
+# Needs the stack from `make dev` (or `docker compose up -d --wait`) to be running.
+smoke:
+	python3 scripts/smoke.py
 
 test:
 	cd backend && uv run pytest -m "not compile and not live"
@@ -21,7 +30,7 @@ test-compile:
 	docker run --rm --network none aptare-compiler-test
 
 lint:
-	cd backend && uv run ruff check && uv run ruff format --check && uv run mypy
+	cd backend && uv run ruff check . ../scripts && uv run ruff format --check . ../scripts && uv run mypy
 	cd compiler && uv run ruff check && uv run ruff format --check && uv run mypy
 	cd frontend && npm run lint && npm run typecheck && npm run format:check
 
