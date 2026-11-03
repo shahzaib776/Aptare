@@ -2,6 +2,7 @@
 DESIGN.md
 IMPLEMENTATION.md
 HANDOFF.md
+CLAUDE.md
 *.pdf
 docs/
 
@@ -40,4 +41,3 @@ build/
 .idea/
 .vscode/
 *.swp
-
