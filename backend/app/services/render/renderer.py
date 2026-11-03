@@ -17,6 +17,7 @@ class TexBundle:
     tex: str
     assets: list[Path]
     tex_hash: str
+    visible: TailoredResume  # as rendered, before escaping; the compile text map reads this
 
 
 def order_sections(specs: list[SectionSpec], section_order: list[SectionKey]) -> list[SectionKey]:
@@ -53,7 +54,7 @@ def render(
 
     folder = templates_dir / manifest.id
     assets = sorted(p for p in (folder / "assets").rglob("*") if p.is_file())
-    return TexBundle(tex=tex, assets=assets, tex_hash=_hash(tex, assets, folder))
+    return TexBundle(tex=tex, assets=assets, tex_hash=_hash(tex, assets, folder), visible=visible)
 
 
 def _visible_parts(

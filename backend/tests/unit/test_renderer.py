@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.schemas.resume import SectionKey, TailoredResume
+from app.schemas.resume import ExperienceSection, SectionKey, TailoredResume
 from app.schemas.template import FieldKey, SectionSpec, TemplateManifest
 from app.schemas.typography import Typography
 from app.services.render.renderer import TexBundle, order_sections, render
@@ -276,3 +276,17 @@ def test_assets_are_listed_in_sorted_order_and_part_of_the_hash(tmp_path: Path) 
     (root / "mini" / "assets" / "a.cls").write_text("changed")
     changed = bundle(minimal_resume(), manifest, templates_dir=root)
     assert changed.tex_hash != result.tex_hash
+
+
+def test_the_bundle_carries_the_resume_as_rendered() -> None:
+    """Step 9: the compile cache builds its element list from this, so it must match the .tex."""
+    resume = full_resume()
+
+    result = bundle(resume, section_order=["projects", "experience"], hidden_fields={"summary"})
+
+    assert result.visible.summary is None
+    assert [s.key for s in result.visible.sections][:2] == ["projects", "experience"]
+    experience = result.visible.sections[1]
+    assert isinstance(experience, ExperienceSection)
+    assert experience.items[0].bullets[0].text == "Cut costs by $5k"
+    assert r"Cut costs by \$5k" in result.tex
