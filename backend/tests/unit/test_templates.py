@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -11,132 +10,12 @@ from app.schemas.typography import Typography
 from app.services.render.escape import escape_resume
 from app.services.render.jinja_env import make_environment
 from app.services.render.templates import load_manifests
+from tests.resumes import full_resume, minimal_resume, sparse_resume
 
 TEMPLATES = Path(__file__).resolve().parents[3] / "templates"
 TEMPLATE_IDS = sorted(
     p.name for p in TEMPLATES.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))
 )
-
-
-def bullet(text: str) -> dict[str, Any]:
-    return {
-        "id": str(uuid4()),
-        "source_bullet_id": str(uuid4()),
-        "text": text,
-        "stretched_terms": [],
-        "covered_keywords": [],
-    }
-
-
-def full_resume() -> TailoredResume:
-    return TailoredResume.model_validate(
-        {
-            "header": {
-                "full_name": "Ada Lovelace",
-                "headline": "Engineer",
-                "email": "ada@example.com",
-                "phone": "555-0100",
-                "location": "London",
-                "links": [
-                    {"kind": "github", "label": "github.com/ada", "url": "https://github.com/ada"}
-                ],
-            },
-            "summary": "Builds reliable systems.",
-            "sections": [
-                {
-                    "key": "education",
-                    "items": [
-                        {
-                            "education_id": str(uuid4()),
-                            "institution": "MIT",
-                            "degree": "BS",
-                            "field": "Math",
-                            "location": "Cambridge",
-                            "dates": "2015 - 2019",
-                            "details": ["Dean's list"],
-                        }
-                    ],
-                },
-                {
-                    "key": "experience",
-                    "items": [
-                        {
-                            "experience_id": str(uuid4()),
-                            "variant_id": str(uuid4()),
-                            "title": "Engineer",
-                            "company": "Analytical Engines",
-                            "location": "London",
-                            "dates": "2020 - Present",
-                            "bullets": [bullet("Cut costs by $5k")],
-                        }
-                    ],
-                },
-                {
-                    "key": "projects",
-                    "items": [
-                        {
-                            "project_id": str(uuid4()),
-                            "name": "Difference Engine",
-                            "url": "https://example.com/de",
-                            "date": "2021",
-                            "bullets": [bullet("Built it")],
-                        }
-                    ],
-                },
-                {
-                    "key": "skills",
-                    "items": [
-                        {
-                            "categories": [
-                                {
-                                    "name": "Languages",
-                                    "skills": [{"name": "Python", "stretched": False}],
-                                },
-                                {"name": "Tools", "skills": [{"name": "Git", "stretched": False}]},
-                            ]
-                        }
-                    ],
-                },
-            ],
-        }
-    )
-
-
-def minimal_resume() -> TailoredResume:
-    return TailoredResume.model_validate(
-        {"header": {"full_name": "Ada", "email": "ada@example.com"}, "sections": []}
-    )
-
-
-def sparse_resume() -> TailoredResume:
-    """Items with nothing optional filled in, plus a section with no items at all."""
-    return TailoredResume.model_validate(
-        {
-            "header": {"full_name": "Ada"},
-            "sections": [
-                {"key": "education", "items": []},
-                {
-                    "key": "experience",
-                    "items": [
-                        {
-                            "experience_id": str(uuid4()),
-                            "variant_id": str(uuid4()),
-                            "title": "Engineer",
-                            "company": "Acme",
-                            "dates": "2020",
-                            "bullets": [],
-                        }
-                    ],
-                },
-                {
-                    "key": "projects",
-                    "items": [
-                        {"project_id": str(uuid4()), "name": "Solo", "bullets": []},
-                    ],
-                },
-            ],
-        }
-    )
 
 
 def render(template_id: str, resume: TailoredResume, typography: Typography | None = None) -> str:
@@ -198,8 +77,8 @@ def test_a_name_and_email_alone_leave_no_separator_or_empty_link(template_id: st
 def test_contact_items_are_joined_by_exactly_one_separator_each(template_id: str) -> None:
     tex = render(template_id, full_resume())
 
-    # phone, email, location and one link make four items and so three separators
-    assert contact_block(tex).count("$|$") == 3
+    # phone, email, location and two links make five items and so four separators
+    assert contact_block(tex).count("$|$") == 4
 
 
 @pytest.mark.parametrize("template_id", TEMPLATE_IDS)
