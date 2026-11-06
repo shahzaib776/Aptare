@@ -38,6 +38,12 @@ def run_migrations_online() -> None:
             if sqlite:
                 connection.exec_driver_sql("PRAGMA foreign_keys=ON")
                 connection.commit()
+        if sqlite:
+            # With foreign keys off a bad data migration leaves dangling rows; look for them now.
+            dangling = connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall()
+            if dangling:
+                tables = sorted({row[0] for row in dangling})
+                raise RuntimeError(f"Migration left rows pointing at nothing in: {tables}")
 
 
 if context.is_offline_mode():
